@@ -14,6 +14,8 @@ export default class GameScene extends Phaser.Scene{
          * We will be able to reference the scene by the ID.
          */
         super('hello-scene')
+
+        this.isGameOver = false
     }
 
     /**
@@ -63,9 +65,11 @@ export default class GameScene extends Phaser.Scene{
 
         this.scoreLabel = this.createScoreLabel(16, 16, 0)
 
-        // this.bombSpawner = new BombSpawner(this, 'bomb')
-        // const bombGroup = this.BombSpawner.group
-        // this.physics.add.collider(bombGroup, platforms)
+        this.bombSpawner = new BombSpawner(this, 'bomb')
+        const bombGroup = this.bombSpawner.group
+        this.physics.add.collider(bombGroup, platforms)
+
+        this.physics.add.collider(this.player, bombGroup, this.hitBomb, null, this)
     }
 
     createPlatforms(){
@@ -125,16 +129,19 @@ export default class GameScene extends Phaser.Scene{
     }
 
     collectStar(player, star){
-        star.disableBody(true, true)
-        this.scoreLabel.add(10)
+        star.disableBody(true, true)    //delete the star after its been collected
+        this.scoreLabel.add(10) //add 10 points to the score
 
+        //Respawn all stars after they've been collected
         if(this.stars.countActive(true) === 0){
             this.stars.children.iterate( (child) => {
                 child.enableBody(true, child.x, 0, true, true )
             })
+
+            // this.bombSpawner.spawn(player.x) - this can be added here to only add a bomb when all stars are collected
         }
 
-        this.bombSpawner.spawn(player.x)
+        this.bombSpawner.spawn(player.x)    //spawn a bomb
     }
 
     createScoreLabel(x, y, score){
@@ -146,7 +153,21 @@ export default class GameScene extends Phaser.Scene{
         return label
     }
 
+    hitBomb(player){
+        this.physics.pause()
+
+        player.setTint(0xff0000)
+
+        player.anims.play('turn')
+
+        this.gameOver = true
+    }
+
     update(){
+
+        if(this.isGameOver){
+            return
+        }
 
         /**
          * Player Left, Right, Idle
